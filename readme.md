@@ -1,5 +1,3 @@
-# CRUD REST API in Rust
-
 ![background](/background.png)
 
 Hey, today I wanted to share my knowledge on how to write a Rest API in Rust. It may be easier than you think!
