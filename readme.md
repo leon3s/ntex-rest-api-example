@@ -1,9 +1,11 @@
-# Rest Api In Rust
+# CRUD REST API in Rust
+
+![background](/background.png)
 
 Hey, today I wanted to share my knowledge on how to write a Rest API in Rust. It may be easier than you think!
 We won't showcase database connectivity in this article. Instead, we focused on demonstrating how to generate `OpenAPI` specifications and serve a `Swagger UI`.
 
-You can find the full code source on [github](https://github.com/leon3s/ntex-rest-api-example)
+You can find the full code source on [github](https://github.com/leon3s/ntex-rest-api-example).
 
 Before starting, make sure you have [Rust](https://www.rust-lang.org) installed.
 
