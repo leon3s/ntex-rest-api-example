@@ -1,9 +1,10 @@
 use ntex::web;
 use ntex::http;
+use utoipa::ToSchema;
 use serde::{Serialize, Deserialize};
 
 /// An http error response
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct HttpError {
   /// The error message
   pub msg: String,

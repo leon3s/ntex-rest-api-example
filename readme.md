@@ -1,6 +1,7 @@
 # Rest Api In Rust
 
-Hey, today i wanted to share my knowledge on how i write Rest API in Rust.
+Hey, today i wanted to share my knowledge on how i write Rest API in Rust.<br />
+It's may be easier than you think !
 
 Before starting make sure you have [rust](https://www.rust-lang.org) installed.
 
@@ -36,9 +37,7 @@ I'm personnaly using vscode, optionally you can add this config in your `.vscode
 
 ```json
 {
-  "editor.rulers": [
-    80
-  ],
+  "editor.rulers": [80],
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
   "editor.trimAutoWhitespace": true,
@@ -114,6 +113,7 @@ We can test our server with curl:
 ```
 curl -v localhost:8080
 ```
+
 ```console
 *   Trying 127.0.0.1:8080...
 * TCP_NODELAY set
@@ -170,7 +170,10 @@ mod services;
 #[ntex::main]
 async fn main() -> std::io::Result<()> {
   web::server(|| {
-    web::App::new().default_service(web::route().to(services::default))
+    web::App::new()
+      // Default endpoint for unregisterd endpoints
+      .default_service(web::route().to(services::default)
+    )
   })
   .bind(("0.0.0.0", 8080))?
   .run()
@@ -194,10 +197,11 @@ Create a file under `src/error.rs` with the following content:
 ```rust
 use ntex::web;
 use ntex::http;
+use utoipa::ToSchema;
 use serde::{Serialize, Deserialize};
 
 /// An http error response
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct HttpError {
   /// The error message
   pub msg: String,
@@ -235,7 +239,10 @@ mod services;
 #[ntex::main]
 async fn main() -> std::io::Result<()> {
   web::server(|| {
-    web::App::new().default_service(web::route().to(services::default))
+    web::App::new()
+      // Default endpoint for unregisterd endpoints
+      .default_service(web::route().to(services::default)
+    )
   })
   .bind(("0.0.0.0", 8080))?
   .run()
@@ -310,6 +317,7 @@ async fn main() -> std::io::Result<()> {
     web::App::new()
       // Register todo endpoints
       .configure(services::todo::ntex_config)
+      // Default endpoint for unregisterd endpoints
       .default_service(web::route().to(services::default))
   })
   .bind(("0.0.0.0", 8080))?
@@ -376,6 +384,7 @@ async fn main() -> std::io::Result<()> {
     web::App::new()
       // Register todo endpoints
       .configure(services::todo::ntex_config)
+      // Default endpoint for unregisterd endpoints
       .default_service(web::route().to(services::default))
   })
   .bind(("0.0.0.0", 8080))?
@@ -384,3 +393,224 @@ async fn main() -> std::io::Result<()> {
   Ok(())
 }
 ```
+
+With the models we can now generate typesafe endpoint with their documentation.
+Let's updates our `endpoints` inside `src/services/todo.rs`:
+
+```rust
+use ntex::web;
+
+use crate::models::todo::TodoPartial;
+
+/// List all todos
+#[utoipa::path(
+  get,
+  path = "/todos",
+  responses(
+    (status = 200, description = "List of Todo", body = [Todo]),
+  ),
+)]
+#[web::get("/todos")]
+pub async fn get_todos() -> web::HttpResponse {
+  web::HttpResponse::Ok().finish()
+}
+
+/// Create a new todo
+#[utoipa::path(
+  post,
+  path = "/todos",
+  request_body = TodoPartial,
+  responses(
+    (status = 201, description = "Todo created", body = Todo),
+  ),
+)]
+#[web::post("/todos")]
+pub async fn create_todo(
+  _todo: web::types::Json<TodoPartial>,
+) -> web::HttpResponse {
+  web::HttpResponse::Created().finish()
+}
+
+/// Get a todo by id
+#[utoipa::path(
+  get,
+  path = "/todos/{id}",
+  responses(
+    (status = 200, description = "Todo found", body = Todo),
+    (status = 404, description = "Todo not found", body = HttpError),
+  ),
+)]
+#[web::get("/todos/{id}")]
+pub async fn get_todo() -> web::HttpResponse {
+  web::HttpResponse::Ok().finish()
+}
+
+/// Update a todo by id
+#[utoipa::path(
+  put,
+  path = "/todos/{id}",
+  request_body = TodoPartial,
+  responses(
+    (status = 200, description = "Todo updated", body = Todo),
+    (status = 404, description = "Todo not found", body = HttpError),
+  ),
+)]
+#[web::put("/todos/{id}")]
+pub async fn update_todo() -> web::HttpResponse {
+  web::HttpResponse::Ok().finish()
+}
+
+/// Delete a todo by id
+#[utoipa::path(
+  delete,
+  path = "/todos/{id}",
+  responses(
+    (status = 200, description = "Todo deleted", body = Todo),
+    (status = 404, description = "Todo not found", body = HttpError),
+  ),
+)]
+#[web::delete("/todos/{id}")]
+pub async fn delete_todo() -> web::HttpResponse {
+  web::HttpResponse::Ok().finish()
+}
+
+pub fn ntex_config(cfg: &mut web::ServiceConfig) {
+  cfg.service(get_todos);
+  cfg.service(create_todo);
+  cfg.service(get_todo);
+  cfg.service(update_todo);
+  cfg.service(delete_todo);
+}
+```
+
+With utoipa with will be able to serve our swagger.
+
+Let's create a new file under `src/services/openapi.rs`:
+
+```rust
+use std::sync::Arc;
+
+use ntex::web;
+use ntex::http;
+use ntex::util::Bytes;
+use utoipa::OpenApi;
+
+use crate::error::HttpError;
+use crate::models::todo::{Todo, TodoPartial};
+
+use super::todo;
+
+/// Main structure to generate OpenAPI documentation
+#[derive(OpenApi)]
+#[openapi(
+  paths(
+    todo::get_todos,
+    todo::create_todo,
+    todo::get_todo,
+    todo::update_todo,
+    todo::delete_todo,
+  ),
+  components(schemas(Todo, TodoPartial, HttpError))
+)]
+pub(crate) struct ApiDoc;
+
+#[web::get("/{tail}*")]
+async fn get_swagger(
+  tail: web::types::Path<String>,
+  openapi_conf: web::types::State<Arc<utoipa_swagger_ui::Config<'static>>>,
+) -> Result<web::HttpResponse, HttpError> {
+  if tail.as_ref() == "swagger.json" {
+    let spec = ApiDoc::openapi().to_json().map_err(|err| HttpError {
+      status: http::StatusCode::INTERNAL_SERVER_ERROR,
+      msg: format!("Error generating OpenAPI spec: {}", err),
+    })?;
+    return Ok(
+      web::HttpResponse::Ok()
+        .content_type("application/json")
+        .body(spec),
+    );
+  }
+  let conf = openapi_conf.as_ref().clone();
+  match utoipa_swagger_ui::serve(&tail, conf.into()).map_err(|err| {
+    HttpError {
+      msg: format!("Error serving Swagger UI: {}", err),
+      status: http::StatusCode::INTERNAL_SERVER_ERROR,
+    }
+  })? {
+    None => Err(HttpError {
+      status: http::StatusCode::NOT_FOUND,
+      msg: format!("path not found: {}", tail),
+    }),
+    Some(file) => Ok({
+      let bytes = Bytes::from(file.bytes.to_vec());
+      web::HttpResponse::Ok()
+        .content_type(file.content_type)
+        .body(bytes)
+    }),
+  }
+}
+
+pub fn ntex_config(config: &mut web::ServiceConfig) {
+  let swagger_config = Arc::new(
+    utoipa_swagger_ui::Config::new(["/explorer/swagger.json"])
+      .use_base_layout(),
+  );
+  config.service(
+    web::scope("/explorer/")
+      .state(swagger_config)
+      .service(get_swagger),
+  );
+}
+```
+
+Don't forget to update `src/services/mod.rs` to import `src/services/openapi.rs`:
+
+```rust
+pub mod todo;
+pub mod openapi;
+
+use ntex::web;
+
+pub async fn default() -> web::HttpResponse {
+  web::HttpResponse::NotFound().finish()
+}
+```
+
+Then we can update our `main.rs` to register our `explorer endpoints`:
+
+```rust
+use ntex::web;
+
+mod error;
+mod models;
+mod services;
+
+#[ntex::main]
+async fn main() -> std::io::Result<()> {
+  web::server(|| {
+    web::App::new()
+      // Register swagger endpoints
+      .configure(services::openapi::ntex_config)
+      // Register todo endpoints
+      .configure(services::todo::ntex_config)
+      // Default endpoint for unregisterd endpoints
+      .default_service(web::route().to(services::default))
+  })
+  .bind(("0.0.0.0", 8080))?
+  .run()
+  .await?;
+  Ok(())
+}
+```
+
+We are good to go. Let's run our server:
+
+```sh
+cargo run
+```
+
+Then we should be able to access to our [explorer](http://localhost:8080/explorer/) on [http://localhost:8080/explorer/](http://localhost:8080/explorer/)
+
+![swagger](/swagger.png)
+
+I Hope you will try to write your next REST API in Rust !

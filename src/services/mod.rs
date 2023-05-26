@@ -1,4 +1,5 @@
 pub mod todo;
+pub mod openapi;
 
 use ntex::web;
 
