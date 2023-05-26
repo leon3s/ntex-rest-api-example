@@ -1,18 +1,20 @@
 # Rest Api In Rust
 
-Hey, today i wanted to share my knowledge on how i write Rest API in Rust.<br />
-It's may be easier than you think !
+Hey, today I wanted to share my knowledge on how to write a Rest API in Rust. It may be easier than you think!
+We won't showcase database connectivity in this article. Instead, we focused on demonstrating how to generate `OpenAPI` specifications and serve a `Swagger UI`.
 
-Before starting make sure you have [rust](https://www.rust-lang.org) installed.
+You can find the full code source on [github](https://github.com/leon3s/ntex-rest-api-example)
 
-Let's start by initing a new project using `cargo init`.
+Before starting, make sure you have [Rust](https://www.rust-lang.org) installed.
+
+Let's start by initializing a new project using `cargo init`.
 
 ```sh
 cargo init my-rest-api
 cd my-rest-api
 ```
 
-That should produce the following directory tree:
+That should produce the following directory structure:
 
 ```console
 ├── Cargo.toml
@@ -20,7 +22,7 @@ That should produce the following directory tree:
     └── main.rs
 ```
 
-You can use `rustfmt` for formatting, to do so, create a `rustfmt.toml` file with the following content:
+You can use `rustfmt` for formatting. To do so, create a `rustfmt.toml` file with the following content:
 
 ```toml
 indent_style = "Block"
@@ -33,7 +35,7 @@ brace_style = "PreferSameLine"
 control_brace_style = "AlwaysSameLine"
 ```
 
-I'm personnaly using vscode, optionally you can add this config in your `.vscode/settings.json`:
+I personally use VSCode. Optionally, you can add this configuration in your `.vscode/settings.json`:
 
 ```json
 {
@@ -50,7 +52,7 @@ I'm personnaly using vscode, optionally you can add this config in your `.vscode
 }
 ```
 
-Your new directory tree should look like this:
+Your new directory structure should look like this:
 
 ```console
 ├── .gitignore
@@ -63,18 +65,19 @@ Your new directory tree should look like this:
     └── main.rs
 ```
 
-We are going to use [ntex](https://ntex.rs) for our http framework.
-We can install Rust dependencies by running `cargo add`.
-Note that when using ntex, we have tha ability to choose our `runtime`.
-To quickly summurize, the `runtime` will manage your `async|await` patern if you are familliar with `nodejs` runtime it's kinda have the same usage.<br/>
-For this tutorial we are going to use `tokio` as it's seems to me the more popular choice.
-Let's add ntex as dependencies:
+We are going to use [ntex](https://ntex.rs) as our HTTP framework.<br/>
+We can install Rust dependencies by running `cargo add`.<br/>
+Note that when using `ntex`, we have the ability to choose our `runtime`.<br/>
+To quickly summarize, the `runtime` will manage your `async|await` pattern.<br/>
+If you are familiar with the `nodejs runtime`, it's kind of similar in usage.
+
+For this tutorial, we are going to use tokio as it seems to be the more popular choice. Let's add ntex as a dependency:
 
 ```sh
 cargo add ntex --features tokio
 ```
 
-Then we are going to update our `main.rs` with the following content:
+Then we are going to update our `main.rs` file with the following content:
 
 ```rust
 use ntex::web;
@@ -94,13 +97,13 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-We can run our project by using:
+We can run our project by using the following command:
 
 ```sh
 cargo run
 ```
 
-This will compile our code and run it.
+This command will compile our code and run it.<br/>
 You should see the following output:
 
 ```console
@@ -108,7 +111,7 @@ Finished dev [unoptimized + debuginfo] target(s) in 17.38s
 Running `target/debug/my-rest-api`
 ```
 
-We can test our server with curl:
+We can test our server using curl:
 
 ```
 curl -v localhost:8080
@@ -133,24 +136,22 @@ curl -v localhost:8080
 Hello world!%
 ```
 
-Congratz you have your first http server in `Rust`!
+Congratulations! You now have your first HTTP server in `Rust`!
 
-Now let's create our first `rest endpoints`.
+Now let's create our first `REST endpoints`.
 
-For the directory architectures, it's kinda how you feel.<br />
-On `ntex` we use a `.service()` method to add new `endpoints` so i choosed to create a directory `services`
-to add my `endpoints` in it.
+Regarding the directory architecture, it's up to personal preference. In `ntex`, we use the `.service()` method to add new `endpoints`. Therefore, I have chosen to create a directory called `services` to house my endpoints.
 
-Let's create our directory:
+Let's create the directory:
 
 ```sh
 mkdir src/services
 touch src/services/mod.rs
 ```
 
-Note that by default `rust` try to import a `mod.rs` file from our directories.
+Note that by default, `Rust` tries to import a `mod.rs` file from our directories.
 
-Let's create our default `endpoints` inside `services/mod.rs`
+Let's create our default `endpoints` inside `services/mod.rs`:
 
 ```rust
 use ntex::web;
@@ -160,7 +161,7 @@ pub async fn default() -> web::HttpResponse {
 }
 ```
 
-Now we need to notify that we want to use this module in our `main.rs`:
+Now we need to indicate that we want to use this module in our main.rs:
 
 ```rust
 use ntex::web;
@@ -182,17 +183,16 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-Now for any unregistered `endpoints` we will have a 404.
+Now, for any unregistered `endpoints`, we will have a 404 error.
 
-Before continuing we will add four dependencies, `serde` and `serde_json` for `JSON` serialization, and `utoipa` with `utoipa-swagger-ui` to have an `OpenApi` swagger.
+Before continuing, let's add four dependencies: `serde` and `serde_json` for JSON serialization, and `utoipa` with `utoipa-swagger-ui` to have an `OpenAPI` swagger.
 
 ```sh
 cargo add serde --features derive
 cargo add serde_json utoipa utoipa-swagger-ui
 ```
 
-Next we are going to create our own `HttpError` type as helpers.
-Create a file under `src/error.rs` with the following content:
+Next, we are going to create our own `HttpError` type as helpers. Create a file under `src/error.rs` with the following content:
 
 ```rust
 use ntex::web;
@@ -251,8 +251,7 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-I think we are ready to write some `endpoints` examples,
-let's simulate a todo list, create a new file under `src/services/todo.rs`:
+I think we are ready to write some example `endpoints`. Let's simulate a todo list and create a new file under `src/services/todo.rs`:
 
 ```rust
 use ntex::web;
@@ -336,13 +335,13 @@ touch src/models/mod.rs
 touch src/models/todo.rs
 ```
 
-in our `src/models/mod.rs` we are going to import `todo.rs`:
+In our `src/models/mod.rs` we are going to import `todo.rs`:
 
 ```rust
 pub mod todo;
 ```
 
-And inside `src/models/todo.rs` we are going to add some `data structure`:
+And inside `src/models/todo.rs`, we are going to add some `data structure`:
 
 ```rust
 use utoipa::ToSchema;
@@ -367,7 +366,7 @@ pub struct TodoPartial {
 }
 ```
 
-You can notice that we use `serde` and `utoipa` derive macro to enable `JSON` serialization and conversion to `OpenApi Schema`.
+You may notice that we use the `serde` and `utoipa` derive macros to enable `JSON` serialization and conversion to `OpenAPI Schema`.
 
 Don't forget to update your `main.rs` to import our `models`:
 
@@ -394,8 +393,7 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-With the models we can now generate typesafe endpoint with their documentation.
-Let's updates our `endpoints` inside `src/services/todo.rs`:
+With the models in place, we can now generate type-safe endpoints with their documentation. Let's update our `endpoints` inside `src/services/todo.rs`:
 
 ```rust
 use ntex::web;
@@ -483,7 +481,7 @@ pub fn ntex_config(cfg: &mut web::ServiceConfig) {
 }
 ```
 
-With utoipa with will be able to serve our swagger.
+With utoipa, we will be able to serve our Swagger documentation.
 
 Let's create a new file under `src/services/openapi.rs`:
 
@@ -576,7 +574,7 @@ pub async fn default() -> web::HttpResponse {
 }
 ```
 
-Then we can update our `main.rs` to register our `explorer endpoints`:
+Then we can update our `main.rs` to register our explorer endpoints:
 
 ```rust
 use ntex::web;
@@ -614,3 +612,66 @@ Then we should be able to access to our [explorer](http://localhost:8080/explore
 ![swagger](/swagger.png)
 
 I Hope you will try to write your next REST API in Rust !
+
+Don't forget to take a look at the dependencies documentation:
+
+- [ntex](https://ntex.rs)
+- [serde](https://serde.rs)
+- [serde_json](https://github.com/serde-rs/json)
+- [utoipa](https://github.com/juhaku/utoipa)
+
+## Bonus
+
+Create a production docker image !
+Add a `Dockerfile` in your project directory with the following content:
+
+```Dockerfile
+# Builder
+FROM rust:1.69.0-alpine3.17 as builder
+
+WORKDIR /app
+
+## Install build dependencies
+RUN apk add alpine-sdk musl-dev build-base upx
+
+## Copy source code
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+## Build release binary
+RUN cargo build --release --target x86_64-unknown-linux-musl
+## Pack release binary with UPX (optional)
+RUN upx --best --lzma /app/target/x86_64-unknown-linux-musl/release/my-rest-api
+
+# Runtime
+FROM scratch
+
+## Copy release binary from builder
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/my-rest-api /app
+
+ENTRYPOINT ["/app"]
+```
+
+Optionally you can add this `release` profile in your `Cargo.toml`:
+
+```toml
+[profile.release]
+opt-level = "z"
+codegen-units = 1
+strip = true
+lto = true
+```
+
+This will optimise the release binary to be as small as possible. Additionally with [upx](https://upx.github.io/) we can create really small docker image !
+
+Build your image:
+
+```sh
+docker build -t my-rest-api:0.0.1 -f Dockerfile .
+```
+
+![docker_image_ls](/docker_image_ls.png)
+
+If you want to see a more real world usecase i invite you to take a look at my opensource project [Nanocl](https://github.com/nxthat/nanocl). That try to simplify the development and deployment of micro services, with containers or virtual machines !
+
+Happy coding !
